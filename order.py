@@ -4,8 +4,12 @@ import numpy as np
 from product import Product
 from customer import Customer
 
+from events import JobStart, JobFinish
+
 class Order(object):
-    def __init__(self, arrival_time, product_type, customer_type, quantity, dispatching_rule):
+    def __init__(self, arrival_time, product_type, customer_type, quantity, dispatching_rule, env):
+        self._environment = env
+
         self._arrival_time = arrival_time
         self._quantity = quantity
         self._product = Product(product_type)
@@ -17,14 +21,30 @@ class Order(object):
         
         self._dispatching_rule = dispatching_rule
         
-    def offer_due_date(self, due_date):
+        cancels_after = self._customer.cancels_order()
+        if cancels_after is None:
+            self._cancellation_time = None
+        else:
+            self._cancellation_time = self._arrival_time + cancels_after
+            
+        
+    def due_date_accepted(self, due_date):
         if self._customer.rejects_due_date(due_date):
-            pass
+            return False
         else:
             self._due_date = due_date
-            self._is_canceled = self._customer.cancels_order()
-            if self._is_canceled:
-                self._cancelation_time = self.arrival_time + self._customer.get_cancelation_time()
+            self._event_job_start = JobStart(None, self, self._environment) 
+            self._event_job_finish = JobFinish(None, self, self._environment)
+            return True
+        
+    def update_event_times(self, t):
+        self._event_job_start.update_time(t)
+        self._event_job_finish.update_time(t + self._process_time)
+        return t + self._process_time
+    
+    def remove_events(self):
+        self._event_job_start.remove()
+        self._event_job_finish.remove()
             
     def __lt__(self, other_order):
         if self._dispatching_rule == 'FIFO':
