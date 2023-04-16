@@ -41,14 +41,14 @@ C = model.addVars(I, lb=0, vtype=gp.GRB.INTEGER, name='C')  # makespan
 T = model.addVars(I, lb=0, vtype=gp.GRB.INTEGER, name='T')  # tardiness for each job
 Y = model.addVars(I, I, vtype=gp.GRB.BINARY, name='Y')  # binary variables for job sequencing
 
-D = model.addVar(lb= 0, vtype=gp.GRB.INTEGER, name='D') # due date for the new order
+#D = model.addVar(lb= 0, vtype=gp.GRB.INTEGER, name='D') # due date for the new order
 
 
 # In[51]:
 
 
 # set the objective function
-model.setObjective(a * D + gp.quicksum(b[i] * T[i] for i in I), sense=gp.GRB.MINIMIZE)
+model.setObjective(a * C[range(I)] + gp.quicksum(b[i] * T[i] for i in I-1), sense=gp.GRB.MINIMIZE)
 
 
 # In[56]:
