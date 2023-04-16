@@ -48,8 +48,7 @@ Y = model.addVars(I, I, vtype=gp.GRB.BINARY, name='Y')  # binary variables for j
 
 
 # set the objective function
-model.setObjective(a * C[range(I)] + gp.quicksum(b[i] * T[i] for i in I-1), sense=gp.GRB.MINIMIZE)
-
+model.setObjective(a * C[n-1] + gp.quicksum(b[i] * T[i] for i in I), sense=gp.GRB.MINIMIZE)
 
 # In[56]:
 
