@@ -1,20 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[46]:
-
-
 import gurobipy as gp
-
-
-# In[47]:
-
 
 # create the model
 model = gp.Model('opt_model')
-
-
-# In[48]:
 
 
 n = 5  # number of jobs
@@ -25,15 +12,9 @@ p = [3, 1, 2, 4, 2]  # processing time for each job
 d = [6, 5, 8, 7, 9]  # due date for each job
 
 
-# In[49]:
-
-
 # define the parameters
 I = range(n)  # set of jobs
 M = sum(p) + 1  # a large number to handle big-M constraints
-
-
-# In[50]:
 
 
 # define the decision variables
@@ -42,15 +23,10 @@ T = model.addVars(I, lb=0, vtype=gp.GRB.INTEGER, name='T')  # tardiness for each
 Y = model.addVars(I, I, vtype=gp.GRB.BINARY, name='Y')  # binary variables for job sequencing
 
 #D = model.addVar(lb= 0, vtype=gp.GRB.INTEGER, name='D') # due date for the new order
-
-
-# In[51]:
-
+# this variable is decided not to be in the model. 
 
 # set the objective function
 model.setObjective(a * C[n-1] + gp.quicksum(b[i] * T[i] for i in I), sense=gp.GRB.MINIMIZE)
-
-# In[56]:
 
 
 # add the constraints
@@ -62,17 +38,10 @@ for i in I:
     model.addConstr(T[i] >= C[i] - d[i])
     model.addConstr(T[i] >= 0)
     
-
-
-
-# In[53]:
-
-
+    
 # optimize the model
 model.optimize()
 
-
-# In[55]:
 
 
 if model.status == gp.GRB.OPTIMAL:
@@ -91,9 +60,6 @@ if model.status == gp.GRB.OPTIMAL:
     print("Optimal due date for new job:", D.x)
 else:
     print("No solution found.")
-
-
-# In[ ]:
 
 
 
