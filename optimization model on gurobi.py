@@ -14,8 +14,8 @@ d = [6, 5, 8, 7, 9]  # due date for each job
 
 # define the parameters
 I = range(n)  # set of jobs
-M = sum(p) + 1  # a large number to handle big-M constraints
-
+# M = sum(p) + 1  # a large number to handle big-M constraints
+M = 1000
 
 # define the decision variables
 C = model.addVars(I, lb=0, vtype=gp.GRB.INTEGER, name='C')  # makespan
