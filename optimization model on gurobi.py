@@ -62,7 +62,7 @@ for i in I:
     model.addConstr(T[i] >= C[i] - d[i])
     model.addConstr(T[i] >= 0)
     
-model.addConstr(D in d)
+
 
 
 # In[53]:
