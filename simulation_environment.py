@@ -4,40 +4,59 @@ from scipy.stats import expon, uniform, norm
 
 from schedule import JobQueue
 from heap import MinHeap
+from order import Order
 
 
 class Environment(object):
-    def __init__(self, n, due_date_policy, simulation_time=None, warmup=None):
+    def __init__(self, n, due_date_policy, dispatching_rule, simulation_time=None, warmup=None):
         self._product_probs = [0.2, 0.3, 0.5]
         self._customer_probs = [0.6, 0.4]
         self.max_order_count = n
     
         self._event_heap = MinHeap()
         self._queue = JobQueue()
+
         self._due_date_policy = due_date_policy
+        self._dispatching_rule = dispatching_rule
     
-    def initialize(self):
+    def initialize(self) -> None:
         self._get_order_arrivals()
         self._get_order_products()
         self._get_order_customers()
-        self.orders = pd.DataFrame({'arrival': self._order_arrivals, 'product': self._order_prod_types, 
+        self.orders_df = pd.DataFrame({'arrival': self._order_arrivals, 'product': self._order_prod_types, 
                                     'customer':self._order_customer_types})
-        self.orders['quantity'] = self.orders.apply(lambda row: Environment.get_order_quantity(row['product'], row['customer']), axis=1)
-    
+        self.orders_df['quantity'] = self.orders_df.apply(lambda row: Environment.get_order_quantity(row['product'], row['customer']), axis=1)
+
+        self._orders = []
+        for _, row in self.orders_df.iterrows():
+            self._orders.append(Order(arrival_time=row['arrival'], product_type=row['product'], customer_type=row['customer'], 
+                    quantity=row['quantity'], dispatching_rule=self._dispatching_rule))
             
-    def _get_order_arrivals(self):
+    def _get_order_arrivals(self) -> None:
+        """
+        calculates order arrival times
+        using random exponential interarrivals
+        """
         order_interarrivals = expon.rvs(loc=8, size=self.max_order_count)
         self._order_arrivals = np.cumsum(order_interarrivals)
         
-    def _get_order_products(self):
+    def _get_order_products(self) -> None:
+        """
+        assigns order products randomly according to
+        the predefined product probabilities
+        """
         product_probs_cdf = np.cumsum(self._product_probs)
         self._order_prod_types = self._determine_types(product_probs_cdf)
         
-    def _get_order_customers(self):
+    def _get_order_customers(self) -> None:
+        """
+        assigns order customers randomly according to
+        the predefined product probabilities
+        """
         customer_probs_cdf = np.cumsum(self._customer_probs)
         self._order_customer_types = self._determine_types(customer_probs_cdf)
         
-    def _determine_types(self, cdf):
+    def _determine_types(self, cdf) -> list:
         rvs = np.random.random(self.max_order_count)
 
         idx = [rvs < cdf[0]] + \
@@ -52,24 +71,28 @@ class Environment(object):
         return types['type'].to_list()
     
     @staticmethod
-    def get_order_quantity(prod_id, customer_id):
+    def get_order_quantity(prod_id, customer_id) -> int:
+        # bu değişebilir
         order_quantity_dist = {(0,0):(22, 1.4), (0,1):(26, 1.9),
                                (1,0):(15, 2.8), (1,1):(17, 2.2),
                                (2,0):(25, 4.5), (2,1):(19, 0.9)}
         mean, std = order_quantity_dist[(prod_id, customer_id)]
-        return norm.rvs(loc=mean, scale=std, size=1)[0]
+        return np.round(norm.rvs(loc=mean, scale=std, size=1)[0], 0)
     
         
     def arrival(self, order):
         self._new_order = order
         
-        if self.machine_is_idle:  
+        # if machine is idle, offer due date without rescheduling
+        # if accepted, process the new order
+        if self.machine_is_idle:
             params = {'expected_completion_time': order._expected_process_time, 
                       'expected_process_time': order._expected_process_time}
             if self._offer_due_date(params):
                 self._new_order.update_event_times(self._time_now)
                 self.machine_is_idle = False
         
+        # if machine is busy, firstly reschedule the jobs and then offer due date
         else:
             self._queue.add_order(order)
             params = self._queue.reschedule(due_date_params=True)
@@ -80,6 +103,7 @@ class Environment(object):
                 self._queue.set_schedule(confirm=False)
                 
     def cancellation(self, order):
+        # process ediliyorsa cancel etme
         self._queue.remove_order(order)
         self._queue.reschedule(due_date_params=False)
         self._queue.set_schedule(confirm=True)
@@ -89,12 +113,13 @@ class Environment(object):
         self.machine_is_idle = False
         started_job = self._queue.pop_order()
         if started_job != job:
+            # sıkıntı, detaylandıralım
             raise Exception('Problem', started_job, job)
     
     def finish_job(self):
         self.machine_is_idle = True
         
-    def _order_due_date(self, params):
+    def _offer_due_date(self, params):
         params['expected_completion_time'] += self._time_now
         params['time_now'] = self._time_now
         due_date = self._due_date_policy()
@@ -102,12 +127,14 @@ class Environment(object):
             
     def _update_events(self):
         sequence = self._order_queue.get_sequence()
-        t = self._time_now
-        for order in sequence:
+        t = self._time_now # + o an makinedeki işin remaining zamanı
+        for order in reversed(sequence):
             t = order.update_event_times(t)
             
     def run(self):
+        self.initialize()
+        self._time_now = 0
         while not self.events_heap.is_empty:
             event = self.events_heap.get_imminent_event()
-            self.time = event.time
+            self._time_now = event.time
             event.occur()

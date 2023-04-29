@@ -8,7 +8,7 @@ class Customer(object):
         """
         self._type = customer_type
         
-        reliabilities = {0: 0.97, 1:0.9}
+        reliabilities = {0: 0.97, 1: 0.9}
         self._reliability = reliabilities[customer_type]
         
         rejection_coefficients = {0: 0.5, 1: 0.7}  # sayılar şimdilik sallamasyon
@@ -22,12 +22,10 @@ class Customer(object):
     def get_type(self):
         return self._type
     
-    def cancels_order(self):
+    def cancels_order(self) -> float:
         if np.random.random() > self._reliability:
             self._cancelation_time = expon.rvs(size=1)
-            return True
-        else:
-            return False
+        return self._cancelation_time
         
     def get_cancelation_time(self):
         return self._cancelation_time
@@ -35,9 +33,9 @@ class Customer(object):
     def get_reliability(self):
         return self._reliability
     
-    def rejects_due_date(self, due_date):
+    def rejects_due_date(self, due_date) -> bool:
         return np.random.random < 1-np.exp(-self._rejection_coefficient*due_date)
     
-    def get_weight_coefficient(self):
+    def get_weight_coefficient(self) -> float:
         mean, std = self._weight_coefficient
         return norm.rvs(loc=mean, scale=std, size=1)

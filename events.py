@@ -3,6 +3,7 @@ class Event(object):
         self.time = time
         self.order = order
         self.occurance_time_fixed = False
+        self.type = None
         
         self.environment = env
         self.heap = self.environment._event_heap
@@ -58,7 +59,7 @@ class JobStart(Event):
         self.type = 'start'
         
     def occur(self):
-        self.environment.start_job(self)
+        self.environment.start_job(self.order)
 
 class JobFinish(Event):
     def __init__(self, time, order, env):

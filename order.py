@@ -4,13 +4,14 @@ import numpy as np
 from product import Product
 from customer import Customer
 
-from events import JobStart, JobFinish
+from events import JobStart, JobFinish, OrderCancellation, OrderArrival
 
 class Order(object):
     def __init__(self, arrival_time, product_type, customer_type, quantity, dispatching_rule, env):
         self._environment = env
-
+        
         self._arrival_time = arrival_time
+        self._event_arrival = OrderArrival(self._arrival_time, self, self._environment)
         self._quantity = quantity
         self._product = Product(product_type)
         self._customer = Customer(customer_type)
@@ -26,9 +27,10 @@ class Order(object):
             self._cancellation_time = None
         else:
             self._cancellation_time = self._arrival_time + cancels_after
+            self._event_cancelation = OrderCancellation(self._cancellation_time, self, self._environment)
             
         
-    def due_date_accepted(self, due_date):
+    def due_date_accepted(self, due_date) -> bool:
         if self._customer.rejects_due_date(due_date):
             return False
         else:
@@ -37,12 +39,12 @@ class Order(object):
             self._event_job_finish = JobFinish(None, self, self._environment)
             return True
         
-    def update_event_times(self, t):
+    def update_event_times(self, t) -> float:
         self._event_job_start.update_time(t)
         self._event_job_finish.update_time(t + self._process_time)
         return t + self._process_time
     
-    def remove_events(self):
+    def remove_events(self) -> None:
         self._event_job_start.remove()
         self._event_job_finish.remove()
             

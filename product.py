@@ -18,13 +18,16 @@ class Product(object):
     def get_type(self):
         return self._type
 
-    def get_unit_process_time(self):
+    def get_unit_process_time(self) -> float:
+        # realization
+        # unceratinty factor kullanarak, random k
+        # self.get_expected_unit_process_time() * k
         loc, scale = self._unit_process_time
         return uniform.rvs(loc=loc, scale=scale, size=1)
     
-    def get_expected_unit_process_time(self):
+    def get_expected_unit_process_time(self) -> float:
         loc, scale = self._unit_process_time
         return loc + scale/2
     
-    def get_unit_profit(self):
+    def get_unit_profit(self) -> float:
         return self._unit_profit
