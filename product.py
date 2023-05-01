@@ -19,12 +19,14 @@ class Product(object):
         return self._type
 
     def get_unit_process_time(self) -> float:
-        # realization
-        # unceratinty factor kullanarak, random k
-        # self.get_expected_unit_process_time() * k
-        loc, scale = self._unit_process_time
-        return uniform.rvs(loc=loc, scale=scale, size=1)
-    
+        k = uniform.rvs(loc=0.5, scale=1, size=1)[0]
+        return self.get_expected_unit_process_time() * k
+#         # realization
+#         # unceratinty factor kullanarak, random k
+#         # self.get_expected_unit_process_time() * k
+#         loc, scale = self._unit_process_time
+#         return uniform.rvs(loc=loc, scale=scale, size=1)[0]
+        
     def get_expected_unit_process_time(self) -> float:
         loc, scale = self._unit_process_time
         return loc + scale/2

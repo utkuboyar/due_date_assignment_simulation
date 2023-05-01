@@ -13,13 +13,16 @@ class Environment(object):
         self._customer_probs = [0.6, 0.4]
         self.max_order_count = n
     
-        self._event_heap = MinHeap()
-        self._queue = JobQueue()
+        self.event_heap = MinHeap()
+        self._queue = JobQueue(dispatching_rule)
 
         self._due_date_policy = due_date_policy
         self._dispatching_rule = dispatching_rule
     
     def initialize(self) -> None:
+        self.machine_is_idle = True
+        self._in_process = None
+        
         self._get_order_arrivals()
         self._get_order_products()
         self._get_order_customers()
@@ -27,17 +30,17 @@ class Environment(object):
                                     'customer':self._order_customer_types})
         self.orders_df['quantity'] = self.orders_df.apply(lambda row: Environment.get_order_quantity(row['product'], row['customer']), axis=1)
 
-        self._orders = []
-        for _, row in self.orders_df.iterrows():
-            self._orders.append(Order(arrival_time=row['arrival'], product_type=row['product'], customer_type=row['customer'], 
-                    quantity=row['quantity'], dispatching_rule=self._dispatching_rule))
-            
+        self._orders = {}
+        for i, row in self.orders_df.iterrows():
+            self._orders[i] = Order(arrival_time=row['arrival'], product_type=row['product'], customer_type=row['customer'], 
+                    quantity=row['quantity'], dispatching_rule=self._dispatching_rule, env=self, order_id=i)
+                  
     def _get_order_arrivals(self) -> None:
         """
         calculates order arrival times
         using random exponential interarrivals
         """
-        order_interarrivals = expon.rvs(loc=8, size=self.max_order_count)
+        order_interarrivals = np.round(expon.rvs(loc=8, size=self.max_order_count)).astype(int)
         self._order_arrivals = np.cumsum(order_interarrivals)
         
     def _get_order_products(self) -> None:
@@ -102,7 +105,7 @@ class Environment(object):
             else:
                 self._queue.set_schedule(confirm=False)
                 
-    def cancellation(self, order):
+    def cancelation(self, order):
         # process ediliyorsa cancel etme
         self._queue.remove_order(order)
         self._queue.reschedule(due_date_params=False)
@@ -111,30 +114,50 @@ class Environment(object):
         
     def start_job(self, job):
         self.machine_is_idle = False
+        self._in_process = job
         started_job = self._queue.pop_order()
-        if started_job != job:
+        if (started_job is not None) and (started_job != job):
             # sıkıntı, detaylandıralım
-            raise Exception('Problem', started_job, job)
+            raise Exception('Problem', started_job._id, job._id)
     
     def finish_job(self):
         self.machine_is_idle = True
+        self._in_process = None
         
     def _offer_due_date(self, params):
         params['expected_completion_time'] += self._time_now
         params['time_now'] = self._time_now
-        due_date = self._due_date_policy()
-        return self._new_order.due_date_accepted(due_date)
+        due_date = self._due_date_policy(**params)
+        return self._new_order.due_date_accepted(due_date, self._time_now)
             
     def _update_events(self):
-        sequence = self._order_queue.get_sequence()
-        t = self._time_now # + o an makinedeki işin remaining zamanı
+        sequence = self._queue.get_sequence()
+        # t = self._time_now # + o an makinedeki işin remaining zamanı
+        if self._in_process is None:
+            t = self._time_now + 1e-13
+        else:
+            t = self._in_process._event_job_finish.time + 1e-13
         for order in reversed(sequence):
+            print('***', t)
             t = order.update_event_times(t)
             
     def run(self):
-        self.initialize()
+#         self.initialize()
         self._time_now = 0
-        while not self.events_heap.is_empty:
-            event = self.events_heap.get_imminent_event()
-            self._time_now = event.time
+        while not self.event_heap.is_empty():
+            #print('here')
+            event, time = self.event_heap.get_imminent_event()
+            print(event)
+            self._time_now = time
             event.occur()
+            print('machine after event')
+            if self._in_process is not None:
+                print(self._in_process._id)
+            else:
+                print('idle')
+            print('queue after event')
+            print([job._id for job in reversed(self._queue._sequence)])
+            print([job._expected_process_time for job in reversed(self._queue._sequence)])
+            print()
+            print('--------')
+            print()

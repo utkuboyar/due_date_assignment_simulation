@@ -11,7 +11,7 @@ class Customer(object):
         reliabilities = {0: 0.97, 1: 0.9}
         self._reliability = reliabilities[customer_type]
         
-        rejection_coefficients = {0: 0.5, 1: 0.7}  # sayılar şimdilik sallamasyon
+        rejection_coefficients = {0: 0.03, 1: 0.05}  # sayılar şimdilik sallamasyon
         self._rejection_coefficient = rejection_coefficients[customer_type]
         
         weight_coefficients = {0: [11, 1.2], 1: [20, 3.3]} # sayılar şimdilik sallamasyon
@@ -24,7 +24,7 @@ class Customer(object):
     
     def cancels_order(self) -> float:
         if np.random.random() > self._reliability:
-            self._cancelation_time = expon.rvs(size=1)
+            self._cancelation_time = expon.rvs(size=1)[0]
         return self._cancelation_time
         
     def get_cancelation_time(self):
@@ -34,7 +34,7 @@ class Customer(object):
         return self._reliability
     
     def rejects_due_date(self, due_date) -> bool:
-        return np.random.random < 1-np.exp(-self._rejection_coefficient*due_date)
+        return np.random.random() < 1-np.exp(-self._rejection_coefficient*due_date)
     
     def get_weight_coefficient(self) -> float:
         mean, std = self._weight_coefficient
