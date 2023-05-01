@@ -35,9 +35,9 @@ class JobQueue(object):
             n = len(self._orders_unordered)
             a, b, p, d = [],[],[],[]
             for order in self._orders_unordered:
-                a.append(order._weight*0.8)
-                p.append(order._weight)
-                b.append(order._expected_process_time)
+                a.append(order._weight*0.8) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
+                b.append(order._weight) #tardiness cost
+                p.append(order._expected_process_time)  
                 d.append(order._due_date)
             I = range(n)
             M= sum(p) + 1
