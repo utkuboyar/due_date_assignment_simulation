@@ -98,7 +98,13 @@ class Environment(object):
         # if machine is busy, firstly reschedule the jobs and then offer due date
         else:
             self._queue.add_order(order)
-            params = self._queue.reschedule(due_date_params=True)
+
+            if self._in_process is None:
+                t = 0
+            else:
+                t = self._in_process._event_job_start.time + self._in_process._event_job_finish.order._expected_process_time - self._time_now
+
+            params = self._queue.reschedule(due_date_params=True, expected_remaining_time_on_machine=t)
             if self._offer_due_date(params):
                 self._queue.set_schedule(confirm=True)
                 self._update_events()
@@ -108,7 +114,12 @@ class Environment(object):
     def cancelation(self, order):
         # process ediliyorsa cancel etme
         self._queue.remove_order(order)
-        self._queue.reschedule(due_date_params=False)
+
+        if self._in_process is None:
+            t = 0
+        else:
+            t = self._in_process._event_job_start.time + self._in_process._event_job_finish.order._expected_process_time - self._time_now
+        self._queue.reschedule(due_date_params=False, expected_remaining_time_on_machine=t)
         self._queue.set_schedule(confirm=True)
         self._update_events()
         
@@ -125,8 +136,14 @@ class Environment(object):
         self._in_process = None
         
     def _offer_due_date(self, params):
-        params['expected_completion_time'] += self._time_now
-        params['time_now'] = self._time_now
+        if self._in_process is None:
+            t = self._time_now
+        else:
+            t = self._in_process._event_job_finish.time
+        # params['expected_completion_time'] += self._time_now
+        # params['time_now'] = self._time_now
+        params['expected_completion_time'] += t
+        params['time_now'] = t
         due_date = self._due_date_policy(**params)
         return self._new_order.due_date_accepted(due_date, self._time_now)
             
