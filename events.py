@@ -24,7 +24,10 @@ class Event(object):
         
     def __lt__(self, other_event):
         if self.time == other_event.time:
-            return self.type == 'finish'
+            if self.type == 'finish':
+                return True
+            if self.type == 'start':
+                return other_event.type != 'finish'
         return self.time < other_event.time
     
     def __repr__(self):

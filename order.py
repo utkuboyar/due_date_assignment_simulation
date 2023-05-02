@@ -34,12 +34,12 @@ class Order(object):
             
     def due_date_accepted(self, due_date, t) -> bool:
         if self._customer.rejects_due_date(due_date - t):
-            print('due date rejected', self._id)
+            #print('due date rejected', self._id)
             self._due_date = None
             self.prevent_cancelation()
             return False
         else:
-            print('due date accepted', self._id)
+            #print('due date accepted', self._id)
             self._due_date = due_date
             self._event_job_start = JobStart(None, self) 
             self._event_job_finish = JobFinish(None, self)
@@ -48,7 +48,7 @@ class Order(object):
     def update_event_times(self, t) -> float:
         self._event_job_start.update_time(t)
         self._event_job_finish.update_time(t + self._process_time)
-        print('here update_event_times', t, t + self._process_time)
+        #print('here update_event_times', t, t + self._process_time)
         return t + self._process_time
     
     def cancel(self) -> None:

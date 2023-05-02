@@ -13,12 +13,12 @@ class JobQueue(object):
         self._orders_unordered.append(new_order)
         
     def remove_order(self, order):
-        print('remove_order called')
-        print(self._orders_unordered)
-        print(order)
-        print(type(order))
-        for o in self._orders_unordered:
-            print('...', type(o))
+        #print('remove_order called')
+        # print(self._orders_unordered)
+        # print(order)
+        # print(type(order))
+        # for o in self._orders_unordered:
+        #     print('...', type(o))
         self._orders_unordered.remove(order)
         
     def pop_order(self) -> Order:

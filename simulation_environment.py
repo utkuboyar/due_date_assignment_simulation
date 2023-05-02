@@ -155,26 +155,28 @@ class Environment(object):
         else:
             t = self._in_process._event_job_finish.time + 1e-13
         for order in reversed(sequence):
-            print('***', t)
+            # print('***', t)
             t = order.update_event_times(t)
             
-    def run(self):
+    def run(self, log=False):
 #         self.initialize()
         self._time_now = 0
         while not self.event_heap.is_empty():
             #print('here')
             event, time = self.event_heap.get_imminent_event()
-            print(event)
             self._time_now = time
             event.occur()
-            print('machine after event')
-            if self._in_process is not None:
-                print(self._in_process._id)
-            else:
-                print('idle')
-            print('queue after event')
-            print([job._id for job in reversed(self._queue._sequence)])
-            print([job._expected_process_time for job in reversed(self._queue._sequence)])
-            print()
-            print('--------')
-            print()
+            
+            if log:
+                print(event)
+                print('machine after event')
+                if self._in_process is not None:
+                    print(self._in_process._id)
+                else:
+                    print('idle')
+                print('queue after event')
+                print([job._id for job in reversed(self._queue._sequence)])
+                print([job._expected_process_time for job in reversed(self._queue._sequence)])
+                print()
+                print('--------')
+                print()
