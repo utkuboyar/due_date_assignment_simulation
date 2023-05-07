@@ -173,7 +173,7 @@ class Environment(object):
         stats = stats_df['order'].apply(self.get_stats)
         stats_df[['ID', 'customer type', 'product type', 'quantity','weight','arrival', 'due date','start','cancelled', 'finish']] = pd.DataFrame(stats.tolist())
         stats_df  = stats_df.drop('order', axis=1)
-        stats_df['weight'] = stats_df['weight'].str[0].astype(int)
+        stats_df['weight'] = stats_df['weight'].astype(int)
         
         #START'TAN SONRA CANCEL EDİLENLERİN CANCELLED TİME'LARINI NONE'A ÇEVİR
         mask = (stats_df['start'].notna()) & (stats_df['cancelled'].notna()) & (stats_df['start'] < stats_df['cancelled'])
