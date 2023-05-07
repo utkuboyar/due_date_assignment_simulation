@@ -1,7 +1,6 @@
 from scipy.stats import uniform, expon
-import numpy as np
 
-from helpers import Rounder
+from .helpers import Rounder
 
 class ProductParameters(object):
     @staticmethod

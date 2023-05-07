@@ -77,13 +77,12 @@ class JobStart(Event):
         self.order.prevent_cancelation()
         self.environment.start_job(self.order)
         
-        
 class JobFinish(Event):
     def __init__(self, time, order):
         super().__init__(time, order)
         self.type = 'finish'
     
     def occur(self):
-        self.order._finish_time = np.round(self.time).astype(int)
+        self.order._finish_time = self.time
         self.environment.finish_job()
 
