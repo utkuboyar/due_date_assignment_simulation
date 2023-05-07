@@ -68,6 +68,7 @@ class Order(object):
              return -self._weight < -other_order._weight
             
     def __repr__(self):
+        return f'{self._id}'
         info = {'arrival': self._arrival_time, 'exp_process_time': self._expected_process_time, 'weight': self._weight[0]}
         stringified = ""
         for k, v in info.items():
