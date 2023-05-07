@@ -37,7 +37,7 @@ class JobQueue(object):
             self.optimize(expected_remaining_time_on_machine=expected_remaining_time_on_machine, time_now=time_now)
         if self._policy != 'optimization':
             self._proposed_new_schedule = sorted(self._orders_unordered, reverse=True)
-            print('here reschedule: ', self._proposed_new_schedule)
+            #print('here reschedule: ', self._proposed_new_schedule)
 
         if not due_date_params:
             return {}
@@ -68,15 +68,15 @@ class JobQueue(object):
             p.append(order._expected_process_time)  
             if i != n-1:
                 d.append(order._due_date)
-        print() 
-        print('here')
-        print('d:', d)
-        print('a:', a)
-        print('b:', b)
-        print('p:', p)
+        # print() 
+        # print('here')
+        # print('d:', d)
+        # print('a:', a)
+        # print('b:', b)
+        # print('p:', p)
         d = list(np.array(d) - expected_remaining_time_on_machine - time_now)
-        print('remaining time:', expected_remaining_time_on_machine, time_now)
-        print('d_after: ', d)
+        # print('remaining time:', expected_remaining_time_on_machine, time_now)
+        # print('d_after: ', d)
 
         I = range(n)
         M= sum(p) + 1
@@ -112,12 +112,12 @@ class JobQueue(object):
             print(p)
             raise Exception('infeasible!!!')
         c=[]
-        print('c:', C)
+        # print('c:', C)
         for i in range(n):
             c.append(C[i].x)
         
         self._proposed_new_schedule = list(np.array(self._orders_unordered)[np.argsort(-np.array(c))])
-        print() 
+        # print() 
             
     
     def set_schedule(self, confirm) -> None:

@@ -138,7 +138,8 @@ class Environment(object):
     
     def finish_job(self):
         self.machine_is_idle = True
-        self._dispatching_rule._add_order(self._in_process)
+        if self._due_date_policy.policy == 'TWK':
+            self._due_date_policy._add_order(self._in_process)
         self._in_process = None
         
     def _offer_due_date(self, params):
@@ -182,8 +183,8 @@ class Environment(object):
         
         
         #IF FINISH AND DUE DATE ARE NOT NONE -> SUBTRACT AND FIND TARDINESS
-        mask_tardy1= (stats_df['finish'].notna() & stats_df['finish'] > stats_df['due date'])
-        print(stats_df.loc[mask_tardy1])
+        # mask_tardy1= (stats_df['finish'].notna() & stats_df['finish'] > stats_df['due date'])
+        # print(stats_df.loc[mask_tardy1])
 #         mask_tardy2 = (stats_df.loc[mask_tardy1, 'finish'] <=  stats_df.loc[mask_tardy1, 'due date'])
 #         stats_df.loc[mask_tardy2, 'finish'])
         #stats_df[mask_tardy, 'tardiness length'] = stats_df['finish'] - stats_df['due date']
@@ -200,7 +201,7 @@ class Environment(object):
 #         stats_df.loc[not_nan_indexes, 'start'] = stats_df.loc[not_nan_indexes, 'start'].astype(int)
 #         print( stats_df.loc[not_nan_indexes, 'start'])
 
-        print(stats_df.dtypes)
+        # print(stats_df.dtypes)
         return stats_df[200:230]
 
     def run(self, log=False):
