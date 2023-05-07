@@ -1,16 +1,18 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import expon, uniform, norm
+from scipy.stats import norm
 
 from schedule import JobQueue
 from heap import MinHeap
 from order import Order
 
+from utils.env_variables import ProductParameters, CustomerParameters, OrderParameters
+
 
 class Environment(object):
     def __init__(self, n, due_date_policy, dispatching_rule, simulation_time=None, warmup=None):
-        self._product_probs = [0.2, 0.3, 0.5]
-        self._customer_probs = [0.6, 0.4]
+        self._product_probs = ProductParameters.get_probs()
+        self._customer_probs = CustomerParameters.get_probs()
         self.max_order_count = n
     
         self.event_heap = MinHeap()
@@ -43,7 +45,7 @@ class Environment(object):
         calculates order arrival times
         using random exponential interarrivals
         """
-        order_interarrivals = np.round(expon.rvs(loc=8, size=self.max_order_count)).astype(int)
+        order_interarrivals = OrderParameters.get_interarrivals(size=self.max_order_count)
         self._order_arrivals = np.cumsum(order_interarrivals)
         
     def _get_order_products(self) -> None:
@@ -79,12 +81,16 @@ class Environment(object):
     @staticmethod
     def get_order_quantity(prod_id, customer_id) -> int:
         # bu değişebilir
-        order_quantity_dist = {(0,0):(22, 1.4), (0,1):(26, 1.9),
-                               (1,0):(15, 2.8), (1,1):(17, 2.2),
-                               (2,0):(25, 4.5), (2,1):(19, 0.9)}
+        order_quantity_dist = OrderParameters.get_quantity_dist()
+
         mean, std = order_quantity_dist[(prod_id, customer_id)]
         return np.round(norm.rvs(loc=mean, scale=std, size=1)[0], 0)
     
+    def _get_expected_remaining_process_time(self):
+        if self._in_process is None:
+            return 0
+        else:
+            return max(0, self._in_process._event_job_start.time + self._in_process._expected_process_time - self._time_now)
         
     def arrival(self, order):
         self._new_order = order
@@ -103,12 +109,9 @@ class Environment(object):
         else:
             self._queue.add_order(order)
 
-            if self._in_process is None:
-                t = 0
-            else:
-                t = self._in_process._event_job_start.time + self._in_process._event_job_finish.order._expected_process_time - self._time_now
+            t = self._get_expected_remaining_process_time()
 
-            params = self._queue.reschedule(due_date_params=True, expected_remaining_time_on_machine=t)
+            params = self._queue.reschedule(due_date_params=True, expected_remaining_time_on_machine=t, time_now=self._time_now)
             if self._offer_due_date(params):
                 self._queue.set_schedule(confirm=True)
                 self._update_events()
@@ -119,11 +122,9 @@ class Environment(object):
         # process ediliyorsa cancel etme
         self._queue.remove_order(order)
 
-        if self._in_process is None:
-            t = 0
-        else:
-            t = self._in_process._event_job_start.time + self._in_process._event_job_finish.order._expected_process_time - self._time_now
-        self._queue.reschedule(due_date_params=False, expected_remaining_time_on_machine=t)
+        t = self._get_expected_remaining_process_time()
+
+        self._queue.reschedule(due_date_params=False, expected_remaining_time_on_machine=t, time_now = self._time_now)
         self._queue.set_schedule(confirm=True)
         self._update_events()
         
@@ -141,10 +142,9 @@ class Environment(object):
         self._in_process = None
         
     def _offer_due_date(self, params):
-        if self._in_process is None:
-            t = self._time_now
-        else:
-            t = self._in_process._event_job_finish.time
+        #if self._in_process is None:
+        t = self._time_now + self._get_expected_remaining_process_time()
+        
         # params['expected_completion_time'] += self._time_now
         # params['time_now'] = self._time_now
         params['expected_completion_time'] += t
@@ -206,6 +206,8 @@ class Environment(object):
     def run(self, log=False):
         self._time_now = 0
         while not self.event_heap.is_empty():
+            if log:
+                print('--------')
             #print('here')
             event, time = self.event_heap.get_imminent_event()
             self._time_now = time
@@ -220,7 +222,7 @@ class Environment(object):
                     print('idle')
                 print('queue after event')
                 print([job._id for job in reversed(self._queue._sequence)])
-                print([job._expected_process_time for job in reversed(self._queue._sequence)])
+                #print([job._expected_process_time for job in reversed(self._queue._sequence)])
                 print()
                 print('--------')
                 print()    

@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.stats import expon, norm
+from scipy.stats import norm
+from utils.env_variables import CustomerParameters
 
 
 class Customer(object):
@@ -7,17 +8,9 @@ class Customer(object):
         """
         types: 0, 1 
         """
-        self._type = np.round(customer_type).astype(int)
-        
-        reliabilities = {0: 0.97, 1: 0.9}
-        self._reliability = reliabilities[customer_type]
-        
-        rejection_coefficients = {0: 0.03, 1: 0.05}  # sayılar şimdilik sallamasyon
-        self._rejection_coefficient = rejection_coefficients[customer_type]
-        
-        weight_coefficients = {0: [11, 1.2], 1: [20, 3.3]} # sayılar şimdilik sallamasyon
-        self._weight_coefficient = weight_coefficients[customer_type]
-        
+        self._type = customer_type
+        self._reliability, self._rejection_coefficient, self._weight_coefficient = CustomerParameters.get_params(customer_type)
+
         self._cancelation_time = None
         
     def get_type(self):
@@ -25,7 +18,7 @@ class Customer(object):
     
     def cancels_order(self) -> int:
         if np.random.random() > self._reliability:
-            self._cancelation_time = (expon.rvs(size=1)[0])
+            self._cancelation_time = CustomerParameters.get_cancelation_time(self._type)
         return self._cancelation_time
         
 #     def get_cancelation_time(self):
