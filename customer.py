@@ -32,4 +32,4 @@ class Customer(object):
     
     def get_weight_coefficient(self) -> float:
         mean, std = self._weight_coefficient
-        return norm.rvs(loc=mean, scale=std, size=1)
+        return norm.rvs(loc=mean, scale=std, size=1)[0]
