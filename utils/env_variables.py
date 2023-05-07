@@ -46,8 +46,15 @@ class OrderParameters(object):
     
     @staticmethod
     def get_interarrivals(size):
-        rate = 3
-        return Rounder.round(expon.rvs(loc=rate, size=size))
+        mean = 5 # mean interarrival time
+        return Rounder.round(expon.rvs(loc=mean, size=size))
 
-
+class OptimizationParameters(object):
+    @staticmethod
+    def get_due_date_cost_coef():
+        return 0.8
+    
+    @staticmethod
+    def get_opt_gap():
+        return 0.6
 

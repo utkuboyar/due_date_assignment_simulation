@@ -202,7 +202,11 @@ class Environment(object):
 #         print( stats_df.loc[not_nan_indexes, 'start'])
 
         # print(stats_df.dtypes)
-        return stats_df[200:230]
+
+        mask_tardy1 = (stats_df['finish'].notna()) & (stats_df['due date'].notna()) & (stats_df['finish'] > stats_df['due date'])
+        stats_df.loc[mask_tardy1, 'tardy amount'] = stats_df.loc[mask_tardy1, 'finish'] - stats_df.loc[mask_tardy1, 'due date']
+
+        return stats_df
 
     def run(self, log=False):
         self._time_now = 0

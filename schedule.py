@@ -2,6 +2,8 @@ from order import Order
 import gurobipy as gp
 import numpy as np
 
+from utils.env_variables import OptimizationParameters
+
 #from order import Order
 
 class JobQueue(object):
@@ -59,12 +61,12 @@ class JobQueue(object):
             
         model = gp.Model('opt_model')
         #model.setParam('TimeLimit', 60)
-        model.setParam('MIPGap', 0.6)
+        model.setParam('MIPGap', OptimizationParameters.get_opt_gap())
         model.setParam('LogToConsole', 0)
         a, b, p, d = [],[],[],[]
         for i, order in enumerate(self._orders_unordered):
-            a.append(order._weight[0]*0.8) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
-            b.append(order._weight[0]) #tardiness cost
+            a.append(order._weight*OptimizationParameters.get_due_date_cost_coef()) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
+            b.append(order._weight) #tardiness cost
             p.append(order._expected_process_time)  
             if i != n-1:
                 d.append(order._due_date)
