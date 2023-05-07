@@ -1,3 +1,5 @@
+from collections import deque
+
 class DueDatePolicy(object):
     def __init__(self, policy):
         self.policy = policy
@@ -39,20 +41,34 @@ class SLK(DueDatePolicy):
         params = {'policy': 'SLK', 'constant': self.constant}
         return params
     
+
 class TWK(DueDatePolicy):
     def __init__(self, moving_avg_window=5):
         super().__init__('TWK')
         self._ma_window = moving_avg_window
+        self._coefficients = deque()
+    
+#     def _define_env(self, environment):
+#         self._environment = environment
+   
+    # order finish ettiği an çağrılıyor ve kendi bilgilerinden hesaplanan coeff. kaydediliyor.
+    def _add_order(self, order):
         
+        coefficient = ((order._finish_time - order._arrival_time)/(order._process_time))
+        self._coefficients.append(coefficient)        
+        if len(self._coefficients) > self._ma_window:
+            self._coefficients.popleft()
+
     def _calculate_due_date(self, **kwargs):
         time_now = kwargs['time_now']
         expected_process_time = kwargs['expected_process_time']
-        self._calculate_coef() 
-        return time_now + expected_process_time * self._coef 
+        return time_now + expected_process_time * (self._get_average_coefficient())
     
-    def _calculate_coef(self):
-        pass
+    def _get_average_coefficient(self):
+        if len(self._coefficients) == 0:
+            return 1.0  # Default value if no coefficients are available
+        return sum(self._coefficients) / len(self._coefficients)
     
     def get_params(self):
-        params = {'policy': 'TWK', 'moving_average': self.constant}
+        params = {'policy': 'TWK', 'moving_average': self._ma_window}
         return params

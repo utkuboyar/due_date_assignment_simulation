@@ -2,6 +2,8 @@ from order import Order
 import gurobipy as gp
 import numpy as np
 
+#from order import Order
+
 class JobQueue(object):
 
     def __init__(self, policy):

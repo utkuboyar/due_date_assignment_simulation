@@ -11,17 +11,20 @@ class Order(object):
         self._environment = env
         self._id = order_id
         
-        self._arrival_time = arrival_time
+        self._arrival_time = np.round(arrival_time).astype(int)
         self._event_arrival = OrderArrival(self._arrival_time, self)
-        self._quantity = quantity
+        self._quantity = np.round(quantity).astype(int)
         self._product = Product(product_type)
         self._customer = Customer(customer_type)
         
-        #self._process_time = self._product.get_unit_process_time() * quantity
-        self._process_time = np.round(self._product.get_unit_process_time() * quantity).astype(int)
+        self._start_time = None
+        self._finish_time = None
         
-        self._expected_process_time = self._product.get_expected_unit_process_time() * quantity
-        self._weight = quantity * self._product.get_unit_profit() * self._customer.get_reliability() * self._customer.get_weight_coefficient()
+        #unit process time is calculated with (expected p.t. * k)
+        self._process_time = self._product.get_unit_process_time() * quantity
+        
+        self._expected_process_time = np.round(self._product.get_expected_unit_process_time() * quantity).astype(int)
+        self._weight = np.round(quantity * self._product.get_unit_profit() * self._customer.get_reliability() * self._customer.get_weight_coefficient()).astype(int)
         
         self._dispatching_rule = dispatching_rule
         
@@ -29,8 +32,14 @@ class Order(object):
         if cancels_after is None:
             self._cancelation_time = None
         else:
+            #if  self._start_time is not None and self._start_time > (self._arrival_time + cancels_after):
             self._cancelation_time = self._arrival_time + cancels_after
             self._event_cancelation = OrderCancelation(self._cancelation_time, self)
+#             else:
+#                 self._cancelation_time = None
+#             # to detect the cancels_after time
+#             if self._id in [547,661,671,700]:
+#                 print(cancels_after,' ', self._id, ' ',self._cancelation_time )
             
     def due_date_accepted(self, due_date, t) -> bool:
         if self._customer.rejects_due_date(due_date - t):
@@ -50,6 +59,20 @@ class Order(object):
         self._event_job_finish.update_time(t + self._process_time)
         #print('here update_event_times', t, t + self._process_time)
         return t + self._process_time
+    
+#     def get_stats(self):
+#         # order's ---> id + customer + product + quantity + weight + arrival
+#                     # + dd offered + dd accepted + start + cancelled + finish +
+#         stats_list = [self._id, self._customer._type, self._product._type, self._quantity, self.get_weight(), 
+#                       self._arrival_time, self.due_date_accepted(), self._start_time, self._cancelation_time, 
+#                       self._finish_time]
+#         return [stats_list]
+    
+    def get_expected_process_time(self):
+        return self._expected_process_time
+    
+    def get_weight(self):
+        return self._weight
     
     def cancel(self) -> None:
         self._event_job_start.remove()

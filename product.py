@@ -5,7 +5,7 @@ class Product(object):
         """
         types: 0, 1, 2 
         """
-        self._type = prod_type
+        self._type = np.round(prod_type).astype(int)
         
         unit_process_times = {0:[0.4, 0.2],
                               1:[0.5, 0.1],

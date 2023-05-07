@@ -1,12 +1,13 @@
 import numpy as np
 from scipy.stats import expon, norm
 
+
 class Customer(object):
     def __init__(self, customer_type):
         """
         types: 0, 1 
         """
-        self._type = customer_type
+        self._type = np.round(customer_type).astype(int)
         
         reliabilities = {0: 0.97, 1: 0.9}
         self._reliability = reliabilities[customer_type]
@@ -22,13 +23,13 @@ class Customer(object):
     def get_type(self):
         return self._type
     
-    def cancels_order(self) -> float:
+    def cancels_order(self) -> int:
         if np.random.random() > self._reliability:
-            self._cancelation_time = expon.rvs(size=1)[0]
+            self._cancelation_time = (expon.rvs(size=1)[0])
         return self._cancelation_time
         
-    def get_cancelation_time(self):
-        return self._cancelation_time
+#     def get_cancelation_time(self):
+#         return self._cancelation_time
     
     def get_reliability(self):
         return self._reliability

@@ -28,6 +28,9 @@ class Event(object):
                 return True
             if self.type == 'start':
                 return other_event.type != 'finish'
+            if self.type == 'arrival':
+                return other_event.type not in ['start', 'finish']
+            return False
         return self.time < other_event.time
     
     def __repr__(self):
@@ -70,13 +73,17 @@ class JobStart(Event):
         self.type = 'start'
         
     def occur(self):
+        self.order._start_time = np.round(self.time).astype(int)
         self.order.prevent_cancelation()
         self.environment.start_job(self.order)
-
+        
+        
 class JobFinish(Event):
     def __init__(self, time, order):
         super().__init__(time, order)
         self.type = 'finish'
     
     def occur(self):
+        self.order._finish_time = np.round(self.time).astype(int)
         self.environment.finish_job()
+

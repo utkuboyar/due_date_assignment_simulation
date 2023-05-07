@@ -18,6 +18,9 @@ class Environment(object):
 
         self._due_date_policy = due_date_policy
         self._dispatching_rule = dispatching_rule
+        
+        #if self._dispatching_rule.policy == TWK:
+          #  self._dispatching_rule._define_env(self)
     
     def initialize(self) -> None:
         self.machine_is_idle = True
@@ -92,6 +95,7 @@ class Environment(object):
             params = {'expected_completion_time': order._expected_process_time, 
                       'expected_process_time': order._expected_process_time}
             if self._offer_due_date(params):
+                
                 self._new_order.update_event_times(self._time_now)
                 self.machine_is_idle = False
         
@@ -133,6 +137,7 @@ class Environment(object):
     
     def finish_job(self):
         self.machine_is_idle = True
+        self._dispatching_rule._add_order(self._in_process)
         self._in_process = None
         
     def _offer_due_date(self, params):
@@ -144,7 +149,7 @@ class Environment(object):
         # params['time_now'] = self._time_now
         params['expected_completion_time'] += t
         params['time_now'] = t
-        due_date = self._due_date_policy(**params)
+        due_date = np.round(self._due_date_policy(**params)).astype(int)
         return self._new_order.due_date_accepted(due_date, self._time_now)
             
     def _update_events(self):
@@ -158,8 +163,47 @@ class Environment(object):
             # print('***', t)
             t = order.update_event_times(t)
             
+    def get_stats(self, order):
+        return order._id, order._customer._type, order._product._type, order._quantity, order.get_weight(), order._arrival_time, order._due_date, order._start_time, order._cancelation_time, order._finish_time
+    
+    def show_stats(self):
+        stats_df = pd.DataFrame({'order':self._orders})
+
+        stats = stats_df['order'].apply(self.get_stats)
+        stats_df[['ID', 'customer type', 'product type', 'quantity','weight','arrival', 'due date','start','cancelled', 'finish']] = pd.DataFrame(stats.tolist())
+        stats_df  = stats_df.drop('order', axis=1)
+        stats_df['weight'] = stats_df['weight'].str[0].astype(int)
+        
+        #START'TAN SONRA CANCEL EDİLENLERİN CANCELLED TİME'LARINI NONE'A ÇEVİR
+        mask = (stats_df['start'].notna()) & (stats_df['cancelled'].notna()) & (stats_df['start'] < stats_df['cancelled'])
+        #print('cancelled after started being processed:', stats_df.loc[mask])
+        stats_df.loc[mask, 'cancelled'] = None
+        #print(stats_df.loc[mask, 'cancelled'])
+        
+        
+        #IF FINISH AND DUE DATE ARE NOT NONE -> SUBTRACT AND FIND TARDINESS
+        mask_tardy1= (stats_df['finish'].notna() & stats_df['finish'] > stats_df['due date'])
+        print(stats_df.loc[mask_tardy1])
+#         mask_tardy2 = (stats_df.loc[mask_tardy1, 'finish'] <=  stats_df.loc[mask_tardy1, 'due date'])
+#         stats_df.loc[mask_tardy2, 'finish'])
+        #stats_df[mask_tardy, 'tardiness length'] = stats_df['finish'] - stats_df['due date']
+        
+
+        
+       
+        #print(stats_df.loc[669:673])
+#         stats_df.loc[mask, 'cancelled'] = None
+
+        # NEDEN ÇALIŞMADIĞINI ANLAMADIĞIM KOD: amacı start column'da None olmayan değerleri float -> int yapmak.
+#         nan_indexes = stats_df[stats_df['start'].isna()].index
+#         not_nan_indexes = stats_df.index.difference(nan_indexes)
+#         stats_df.loc[not_nan_indexes, 'start'] = stats_df.loc[not_nan_indexes, 'start'].astype(int)
+#         print( stats_df.loc[not_nan_indexes, 'start'])
+
+        print(stats_df.dtypes)
+        return stats_df[200:230]
+
     def run(self, log=False):
-#         self.initialize()
         self._time_now = 0
         while not self.event_heap.is_empty():
             #print('here')
@@ -179,4 +223,4 @@ class Environment(object):
                 print([job._expected_process_time for job in reversed(self._queue._sequence)])
                 print()
                 print('--------')
-                print()
+                print()    
