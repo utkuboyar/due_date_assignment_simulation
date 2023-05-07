@@ -73,7 +73,7 @@ class JobStart(Event):
         self.type = 'start'
         
     def occur(self):
-        self.order._start_time = np.round(self.time).astype(int)
+        self.order._start_time = self.time
         self.order.prevent_cancelation()
         self.environment.start_job(self.order)
         

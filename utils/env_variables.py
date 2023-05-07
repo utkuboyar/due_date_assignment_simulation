@@ -1,6 +1,8 @@
 from scipy.stats import uniform, expon
 import numpy as np
 
+from helpers import Rounder
+
 class ProductParameters(object):
     @staticmethod
     def get_params(prod_id):
@@ -30,7 +32,7 @@ class CustomerParameters(object):
     def get_cancelation_time(customer_id):
         cancelation_rates = {0: 5, 1: 7}
         rate = cancelation_rates[customer_id]
-        return Helper.round(expon.rvs(loc=rate, size=1))[0]
+        return Rounder.round(expon.rvs(loc=rate, size=1))[0]
 
     @staticmethod
     def get_probs():
@@ -46,12 +48,7 @@ class OrderParameters(object):
     @staticmethod
     def get_interarrivals(size):
         rate = 3
-        return Helper.round(expon.rvs(loc=rate, size=size))
+        return Rounder.round(expon.rvs(loc=rate, size=size))
 
-class Helper(object):
-    @staticmethod
-    def round(arr):
-        decimals = 5
-        arr = np.power(10, decimals) * np.round(arr, decimals=decimals)
-        return arr.astype(int)
+
 
