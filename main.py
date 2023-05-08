@@ -31,5 +31,5 @@ df = pd.DataFrame(simulation_info)
 
 records['results'] = df
 
-with open(f'records_{records["start_time"]}') as f:
+with open(f'records_{records["start_time"]}', 'wb') as f:
     _pickle.dump(records, f)
