@@ -1,30 +1,101 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
+import multiprocessing 
 
 from schedule import JobQueue
 from heap import MinHeap
+from due_date_policies import CON, SLK, TWK
 from order import Order
 
 from utils.env_variables import ProductParameters, CustomerParameters, OrderParameters
 
+class Simulation(object):
+    def __init__(self, seed, **kwargs):
+        self.seed = seed
+        self.kwargs = kwargs
+
+    @staticmethod
+    def run_environment(config):
+        n, due_date_policy_params, dispatching_rule = config['n'], config['due_date_policy_params'], config['dispatching_rule']
+        simulation_time, warmup = None, None
+        if 'simulation_time' in config:
+            simulation_time = config['simulation_time']
+        if 'warmup' in config:
+            warmup = config['warmup']
+        seed = config['seed']
+
+        env = Environment(n=n, due_date_policy_params=due_date_policy_params, dispatching_rule=dispatching_rule, 
+                          seed=seed, simulation_time=simulation_time, warmup=warmup)
+        env.run_once()
+        stats = env.collect_stats()
+        return stats
+
+    def run(self, n_sim, num_cores=-1) -> dict:
+        stat_names = {'tardiness_proportion':[], 'rejection_proportion':[],
+                       'weighted_tardiness_proportion':[], 'weighted_rejection_proportion':[]}     
+           
+        if num_cores <= 0:
+            self._num_cores = multiprocessing.cpu_count()
+        else:
+            self._num_cores = min(multiprocessing.cpu_count(), num_cores)
+
+        np.random.seed(self.seed)
+        self.env_seeds = np.random.randint(0, n_sim*100000, n_sim)
+
+        args_list = []
+        for seed in self.env_seeds:
+            config = self.kwargs.copy()
+            config['seed'] = seed
+            args_list.append(config)
+
+        with multiprocessing.Pool(processes=self._num_cores) as pool:
+            results = pool.map(Simulation.run_environment, args_list)
+        
+        stats = {name:[] for name in stat_names}
+        for result in results:
+            for i, name in enumerate(stat_names):
+                stats[name].append(result[i])
+        self._stats_df = pd.DataFrame(stats)
+        return self._stats_df.mean().to_dict()
+            
+        # for i in range(n_sim):
+        #     print(f'round {i}')
+        #     self.run_once(log=log)
+        #     self._collect_stats()
+
+        # self._stats_df = pd.DataFrame(self._stats)
+        # return self._stats_df
+
+
 
 class Environment(object):
-    def __init__(self, n, due_date_policy, dispatching_rule, simulation_time=None, warmup=None):
+    def __init__(self, n, due_date_policy_params, dispatching_rule, seed, simulation_time=None, warmup=None):
         self._product_probs = ProductParameters.get_probs()
         self._customer_probs = CustomerParameters.get_probs()
         self.max_order_count = n
-    
-        self.event_heap = MinHeap()
-        self._queue = JobQueue(dispatching_rule)
-
-        self._due_date_policy = due_date_policy
+        self._due_date_policy = due_date_policy_params['policy']
+        self._due_date_policy_params = due_date_policy_params
+        del self._due_date_policy_params['policy']
         self._dispatching_rule = dispatching_rule
-        
-        #if self._dispatching_rule.policy == TWK:
-          #  self._dispatching_rule._define_env(self)
+        self.seed = seed
+        self.simulation_time = simulation_time
+        self.warmup = warmup
     
-    def initialize(self) -> None:
+    def _initialize(self) -> None:
+        np.random.seed(self.seed)
+        self.event_heap = MinHeap()
+        self._queue = JobQueue(self._dispatching_rule)
+        
+        if self._due_date_policy == 'CON':
+            self._due_date_assigner = CON(**self._due_date_policy_params)
+        if self._due_date_policy == 'SLK':
+            self._due_date_assigner = SLK(**self._due_date_policy_params)
+        if self._due_date_policy == 'TWK':
+            self._due_date_assigner = TWK(**self._due_date_policy_params)
+
+        self._time_now = 0
+
         self.machine_is_idle = True
         self._in_process = None
         
@@ -36,10 +107,17 @@ class Environment(object):
         self.orders_df['quantity'] = self.orders_df.apply(lambda row: Environment.get_order_quantity(row['product'], row['customer']), axis=1)
 
         self._orders = {}
-        for i, row in self.orders_df.iterrows():
-            self._orders[i] = Order(arrival_time=row['arrival'], product_type=row['product'], customer_type=row['customer'], 
-                    quantity=row['quantity'], dispatching_rule=self._dispatching_rule, env=self, order_id=i)
-                  
+        # for i, row in self.orders_df.iterrows():
+        #     self._orders[i] = Order(arrival_time=row['arrival'], product_type=row['product'], customer_type=row['customer'], 
+        #             quantity=row['quantity'], dispatching_rule=self._dispatching_rule, env=self, order_id=i)
+        orders = self.orders_df.apply(Environment.create_order, axis=1, dispatching_rule=self._dispatching_rule, env=self)
+        self._orders = {i: order for i, order in enumerate(orders)}
+
+    @staticmethod      
+    def create_order(row, dispatching_rule, env):
+        return Order(arrival_time=row['arrival'], product_type=row['product'], customer_type=row['customer'], 
+                    quantity=row['quantity'], dispatching_rule=dispatching_rule, env=env, order_id=row.index)
+    
     def _get_order_arrivals(self) -> None:
         """
         calculates order arrival times
@@ -138,8 +216,8 @@ class Environment(object):
     
     def finish_job(self):
         self.machine_is_idle = True
-        if self._due_date_policy.policy == 'TWK':
-            self._due_date_policy._add_order(self._in_process)
+        if self._due_date_policy == 'TWK':
+            self._due_date_assigner._add_order(self._in_process)
         self._in_process = None
         
     def _offer_due_date(self, params):
@@ -150,7 +228,7 @@ class Environment(object):
         # params['time_now'] = self._time_now
         params['expected_completion_time'] += t
         params['time_now'] = t
-        due_date = np.round(self._due_date_policy(**params)).astype(int)
+        due_date = np.round(self._due_date_assigner(**params)).astype(int)
         return self._new_order.due_date_accepted(due_date, self._time_now)
             
     def _update_events(self):
@@ -179,37 +257,14 @@ class Environment(object):
         mask = (stats_df['start'].notna()) & (stats_df['cancelled'].notna()) & (stats_df['start'] < stats_df['cancelled'])
         #print('cancelled after started being processed:', stats_df.loc[mask])
         stats_df.loc[mask, 'cancelled'] = None
-        #print(stats_df.loc[mask, 'cancelled'])
         
-        
-        #IF FINISH AND DUE DATE ARE NOT NONE -> SUBTRACT AND FIND TARDINESS
-        # mask_tardy1= (stats_df['finish'].notna() & stats_df['finish'] > stats_df['due date'])
-        # print(stats_df.loc[mask_tardy1])
-#         mask_tardy2 = (stats_df.loc[mask_tardy1, 'finish'] <=  stats_df.loc[mask_tardy1, 'due date'])
-#         stats_df.loc[mask_tardy2, 'finish'])
-        #stats_df[mask_tardy, 'tardiness length'] = stats_df['finish'] - stats_df['due date']
-        
-
-        
-       
-        #print(stats_df.loc[669:673])
-#         stats_df.loc[mask, 'cancelled'] = None
-
-        # NEDEN ÇALIŞMADIĞINI ANLAMADIĞIM KOD: amacı start column'da None olmayan değerleri float -> int yapmak.
-#         nan_indexes = stats_df[stats_df['start'].isna()].index
-#         not_nan_indexes = stats_df.index.difference(nan_indexes)
-#         stats_df.loc[not_nan_indexes, 'start'] = stats_df.loc[not_nan_indexes, 'start'].astype(int)
-#         print( stats_df.loc[not_nan_indexes, 'start'])
-
-        # print(stats_df.dtypes)
-
         mask_tardy1 = (stats_df['finish'].notna()) & (stats_df['due date'].notna()) & (stats_df['finish'] > stats_df['due date'])
         stats_df.loc[mask_tardy1, 'tardy amount'] = stats_df.loc[mask_tardy1, 'finish'] - stats_df.loc[mask_tardy1, 'due date']
 
         return stats_df
 
-    def run(self, log=False):
-        self._time_now = 0
+    def run_once(self, log=False):
+        self._initialize()
         while not self.event_heap.is_empty():
             if log:
                 print('--------')
@@ -231,3 +286,42 @@ class Environment(object):
                 print()
                 print('--------')
                 print()    
+
+    def collect_stats(self):
+        stats = self.show_stats()
+        mask_tardy = stats['tardy amount'].notna()
+        mask_rejection = stats['due date'].isna()
+
+        tardiness_prop = mask_tardy.sum()/len(stats)
+        rejection_prop = mask_rejection.sum()/len(stats)
+
+        weighted_tardiness_prop = stats[mask_tardy]['weight'].sum()/stats['weight'].sum()
+        weighted_rejection_prop = stats[mask_rejection]['weight'].sum()/stats['weight'].sum()
+
+        return tardiness_prop, rejection_prop, weighted_tardiness_prop, weighted_rejection_prop
+
+        # self._stats['tardiness_proportion'].append(tardiness_prop)
+        # self._stats['rejection_proportion'].append(rejection_prop)
+        # self._stats['weighted_tardiness_proportion'].append(weighted_tardiness_prop)
+        # self._stats['weighted_rejection_proportion'].append(weighted_rejection_prop)
+
+    # def run(self, n_sim, num_cores=-1, log=False) -> pd.DataFrame:
+    #     self._stats = {'tardiness_proportion':[], 'rejection_proportion':[],
+    #                    'weighted_tardiness_proportion':[], 'weighted_rejection_proportion':[]}
+        
+    #     if num_cores <= 0:
+    #         self._num_cores = multiprocessing.cpu_count()
+    #     else:
+    #         self._num_cores = min(multiprocessing.cpu_count(), num_cores)
+
+    #     for i in range(n_sim):
+    #         # if log:
+    #         #     print('******')
+    #         #     print('******')
+    #         #     print('******')
+    #         print(f'round {i}')
+    #         self.run_once(log=log)
+    #         self._collect_stats()
+
+    #     self._stats_df = pd.DataFrame(self._stats)
+    #     return self._stats_df

@@ -42,7 +42,7 @@ class Order(object):
 #                 print(cancels_after,' ', self._id, ' ',self._cancelation_time )
             
     def due_date_accepted(self, due_date, t) -> bool:
-        if self._customer.rejects_due_date(due_date - t):
+        if self._customer.rejects_due_date((due_date - t)/self.get_expected_process_time()):
             #print('due date rejected', self._id)
             self._due_date = None
             self.prevent_cancelation()
@@ -80,6 +80,7 @@ class Order(object):
         
     def prevent_cancelation(self) -> None:
         if self._cancelation_time is not None:
+            self._cancelation_time = None
             self._event_cancelation.remove()
             
     def __lt__(self, other_order):
