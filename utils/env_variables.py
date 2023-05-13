@@ -6,8 +6,8 @@ class ProductParameters(object):
     @staticmethod
     def get_params(prod_id):
         unit_process_times = {0:[0.4, 0.2],
-                            1:[0.5, 0.1],
-                            2:[0.7, 0.4]}
+                              1:[0.3, 0.1],
+                              2:[0.7, 0.4]}
         unit_profits = {0: 3, 1: 2.5, 2: 1.8}
         return unit_process_times[prod_id], unit_profits[prod_id]
     
@@ -23,7 +23,7 @@ class CustomerParameters(object):
     @staticmethod
     def get_params(customer_id):
         reliabilities = {0: 0.97, 1: 0.9}
-        rejection_coefficients = {0: 0.03, 1: 0.05}  # sayılar şimdilik sallamasyon
+        rejection_coefficients = {0: 0.01, 1: 0.02}  # sayılar şimdilik sallamasyon
         weight_coefficients = {0: [11, 1.2], 1: [20, 3.3]} # sayılar şimdilik sallamasyon
         return reliabilities[customer_id], rejection_coefficients[customer_id], weight_coefficients[customer_id]
     
@@ -40,13 +40,15 @@ class CustomerParameters(object):
 class OrderParameters(object):
     @staticmethod
     def get_quantity_dist():
-        return {(0,0):(22, 1.4), (0,1):(26, 1.9),
-                (1,0):(15, 2.8), (1,1):(17, 2.2),
-                (2,0):(25, 4.5), (2,1):(19, 0.9)}
+        return {(0,0):(33, 1.4), (0,1):(36, 1.9),
+                (1,0):(20, 2.8), (1,1):(21, 2.2),
+                (2,0):(9, 4.5), (2,1):(12, 0.9)}
     
     @staticmethod
-    def get_interarrivals(size):
-        mean = 5 # mean interarrival time
+    def get_interarrivals(size, get_mean=False):
+        mean = 7 # mean interarrival time
+        if get_mean:
+            return mean
         return Rounder.round(expon.rvs(loc=mean, size=size))
 
 class OptimizationParameters(object):
@@ -56,5 +58,5 @@ class OptimizationParameters(object):
     
     @staticmethod
     def get_opt_gap():
-        return 0.6
+        return 0.3
 
