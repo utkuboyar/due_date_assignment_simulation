@@ -12,7 +12,7 @@ class ProductParameters(object):
         return unit_process_times[prod_id], unit_profits[prod_id]
     
     @staticmethod
-    def get_uncertainty_constant():
+    def get_uncertainty_multiplier():
         return uniform.rvs(loc=0.5, scale=1, size=1)[0]
     
     @staticmethod

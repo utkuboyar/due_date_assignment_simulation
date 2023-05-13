@@ -102,9 +102,10 @@ class Environment(object):
         self._get_order_arrivals()
         self._get_order_products()
         self._get_order_customers()
-        self.orders_df = pd.DataFrame({'arrival': self._order_arrivals, 'product': self._order_prod_types, 
-                                    'customer':self._order_customer_types})
+        self.orders_df = pd.DataFrame({'id':[i for i in range(self.max_order_count)] ,'arrival': self._order_arrivals, 
+                                       'product': self._order_prod_types, 'customer':self._order_customer_types})
         self.orders_df['quantity'] = self.orders_df.apply(lambda row: Environment.get_order_quantity(row['product'], row['customer']), axis=1)
+        self.orders_df['quantity'] = self.orders_df['quantity'].apply(lambda x: max(x, 1))
 
         self._orders = {}
         # for i, row in self.orders_df.iterrows():
@@ -116,7 +117,7 @@ class Environment(object):
     @staticmethod      
     def create_order(row, dispatching_rule, env):
         return Order(arrival_time=row['arrival'], product_type=row['product'], customer_type=row['customer'], 
-                    quantity=row['quantity'], dispatching_rule=dispatching_rule, env=env, order_id=row.index)
+                    quantity=row['quantity'], dispatching_rule=dispatching_rule, env=env, order_id=row['id'])
     
     def _get_order_arrivals(self) -> None:
         """
@@ -235,9 +236,9 @@ class Environment(object):
         sequence = self._queue.get_sequence()
         # t = self._time_now # + o an makinedeki işin remaining zamanı
         if self._in_process is None:
-            t = self._time_now + 1e-13
+            t = self._time_now + 1e-5
         else:
-            t = self._in_process._event_job_finish.time + 1e-13
+            t = self._in_process._event_job_finish.time + 1e-5
         for order in reversed(sequence):
             # print('***', t)
             t = order.update_event_times(t)
@@ -254,6 +255,7 @@ class Environment(object):
         stats_df['weight'] = stats_df['weight'].astype(int)
         
         #START'TAN SONRA CANCEL EDİLENLERİN CANCELLED TİME'LARINI NONE'A ÇEVİR
+        # customer reliabilityler 1 olunca burası hata veriyor
         mask = (stats_df['start'].notna()) & (stats_df['cancelled'].notna()) & (stats_df['start'] < stats_df['cancelled'])
         #print('cancelled after started being processed:', stats_df.loc[mask])
         stats_df.loc[mask, 'cancelled'] = None

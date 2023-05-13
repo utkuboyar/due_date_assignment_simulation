@@ -13,7 +13,7 @@ class Product(object):
         return self._type
 
     def get_unit_process_time(self) -> float:
-        return Rounder.round(self.get_expected_unit_process_time() * ProductParameters.get_uncertainty_constant())
+        return Rounder.round(self.get_expected_unit_process_time() * ProductParameters.get_uncertainty_multiplier())
         
     def get_expected_unit_process_time(self) -> float:
         loc, scale = self._unit_process_time
