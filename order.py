@@ -23,8 +23,8 @@ class Order(object):
         #unit process time is calculated with (expected p.t. * k)
         self._process_time = self._product.get_unit_process_time() * quantity
         
-        self._expected_process_time = np.round(self._product.get_expected_unit_process_time() * quantity).astype(int)
-        self._weight = np.round(quantity * self._product.get_unit_profit() * self._customer.get_reliability() * np.max(1, self._customer.get_weight_coefficient()).astype(int))
+        self._expected_process_time = self._product.get_expected_unit_process_time() * quantity
+        self._weight = np.round(quantity * self._product.get_unit_profit() * self._customer.get_reliability() * max(1, self._customer.get_weight_coefficient())).astype(int)
         
         self._dispatching_rule = dispatching_rule
         

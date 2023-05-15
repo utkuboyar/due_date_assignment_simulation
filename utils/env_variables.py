@@ -29,9 +29,9 @@ class CustomerParameters(object):
     
     @staticmethod
     def get_cancelation_time(customer_id):
-        cancelation_rates = {0: 5, 1: 7}
-        rate = cancelation_rates[customer_id]
-        return Rounder.round(expon.rvs(loc=rate, size=1))[0]
+        mean_cancelation_times = {0: 5, 1: 7}
+        mean_cancelation_time = mean_cancelation_times[customer_id]
+        return Rounder.round(expon.rvs(loc=mean_cancelation_time, size=1))[0]
 
     @staticmethod
     def get_probs():
