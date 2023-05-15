@@ -46,7 +46,7 @@ class OrderParameters(object):
     
     @staticmethod
     def get_interarrivals(size, get_mean=False):
-        mean = 7 # mean interarrival time
+        mean = 9 # mean interarrival time
         if get_mean:
             return mean
         return Rounder.round(expon.rvs(loc=mean, size=size))

@@ -236,9 +236,9 @@ class Environment(object):
         sequence = self._queue.get_sequence()
         # t = self._time_now # + o an makinedeki işin remaining zamanı
         if self._in_process is None:
-            t = self._time_now + 1e-5
+            t = self._time_now #+ 1e-5
         else:
-            t = self._in_process._event_job_finish.time + 1e-5
+            t = self._in_process._event_job_finish.time #+ 1e-5
         for order in reversed(sequence):
             # print('***', t)
             t = order.update_event_times(t)

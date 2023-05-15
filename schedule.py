@@ -60,9 +60,9 @@ class JobQueue(object):
             return
             
         model = gp.Model('opt_model')
+        model.setParam('LogToConsole', 0)
         #model.setParam('TimeLimit', 60)
         model.setParam('MIPGap', OptimizationParameters.get_opt_gap())
-        model.setParam('LogToConsole', 0)
         a, b, p, d = [],[],[],[]
         for i, order in enumerate(self._orders_unordered):
             a.append(order._weight*OptimizationParameters.get_due_date_cost_coef()) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
