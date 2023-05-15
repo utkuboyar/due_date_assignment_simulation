@@ -80,7 +80,7 @@ class Environment(object):
         self._dispatching_rule = dispatching_rule
         self.seed = seed
         self.simulation_time = simulation_time
-        self.warmup = warmup
+        self.warmup = warmup/2
     
     def _initialize(self) -> None:
         np.random.seed(self.seed)
@@ -291,14 +291,34 @@ class Environment(object):
 
     def collect_stats(self):
         stats = self.show_stats()
-        mask_tardy = stats['tardy amount'].notna()
-        mask_rejection = stats['due date'].isna()
+        
+        # Calculate the indices for the middle portion
+        max_time = stats['finish'].max()
+        warmup_percentage = 100 - self.warmup
+        warmup_start = int(max_time * (self.warmup / 100))
+        warmup_end = int(max_time * (warmup_percentage / 100))
+        print(warmup_start,' - ', warmup_end)
+        
+        # Create a mask for orders within the warmup time range
+        mask_warmup = (
+            (stats['arrival'].between(warmup_start, warmup_end)) | (stats['start'].between(warmup_start, warmup_end)) |
+            (stats['cancelled'].between(warmup_start, warmup_end)) | (stats['finish'].between(warmup_start, warmup_end))
+        )
 
-        tardiness_prop = mask_tardy.sum()/len(stats)
-        rejection_prop = mask_rejection.sum()/len(stats)
+        # Apply the mask to filter the stats
+        stats_warmed = stats[mask_warmup]
+        print(stats_warmed)
+        
+        mask_tardy = stats_warmed['tardy amount'].notna()
+        mask_rejection = stats_warmed['due date'].isna()
+        
+        
+        
+        tardiness_prop = mask_tardy.sum()/len(stats_warmed)
+        rejection_prop = mask_rejection.sum()/len(stats_warmed)
 
-        weighted_tardiness_prop = stats[mask_tardy]['weight'].sum()/stats['weight'].sum()
-        weighted_rejection_prop = stats[mask_rejection]['weight'].sum()/stats['weight'].sum()
+        weighted_tardiness_prop = stats_warmed[mask_tardy]['weight'].sum()/stats_warmed['weight'].sum()
+        weighted_rejection_prop = stats_warmed[mask_rejection]['weight'].sum()/stats_warmed['weight'].sum()
 
         return tardiness_prop, rejection_prop, weighted_tardiness_prop, weighted_rejection_prop
 
