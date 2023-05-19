@@ -58,15 +58,8 @@ class Simulation(object):
             for i, name in enumerate(stat_names):
                 stats[name].append(result[i])
         self._stats_df = pd.DataFrame(stats)
-        return self._stats_df.mean().to_dict()
-            
-        # for i in range(n_sim):
-        #     print(f'round {i}')
-        #     self.run_once(log=log)
-        #     self._collect_stats()
-
-        # self._stats_df = pd.DataFrame(self._stats)
-        # return self._stats_df
+        # return self._stats_df.mean().to_dict()
+        return self._stats_df.describe().to_dict()
 
 
 
@@ -326,28 +319,4 @@ class Environment(object):
 
         return tardiness_prop, rejection_prop, weighted_tardiness_prop, weighted_rejection_prop, avg_tardiness_amount, weighted_avg_tardiness_amount
 
-        # self._stats['tardiness_proportion'].append(tardiness_prop)
-        # self._stats['rejection_proportion'].append(rejection_prop)
-        # self._stats['weighted_tardiness_proportion'].append(weighted_tardiness_prop)
-        # self._stats['weighted_rejection_proportion'].append(weighted_rejection_prop)
-
-    # def run(self, n_sim, num_cores=-1, log=False) -> pd.DataFrame:
-    #     self._stats = {'tardiness_proportion':[], 'rejection_proportion':[],
-    #                    'weighted_tardiness_proportion':[], 'weighted_rejection_proportion':[]}
         
-    #     if num_cores <= 0:
-    #         self._num_cores = multiprocessing.cpu_count()
-    #     else:
-    #         self._num_cores = min(multiprocessing.cpu_count(), num_cores)
-
-    #     for i in range(n_sim):
-    #         # if log:
-    #         #     print('******')
-    #         #     print('******')
-    #         #     print('******')
-    #         print(f'round {i}')
-    #         self.run_once(log=log)
-    #         self._collect_stats()
-
-    #     self._stats_df = pd.DataFrame(self._stats)
-    #     return self._stats_df

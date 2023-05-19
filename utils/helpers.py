@@ -65,7 +65,7 @@ def plot_frontier(results, type):
         plt.ylabel('rejection proportion')
         plt.show()
 
-    if type == 'wavgt_t_wr':
+    if type == 'wavgt_v_wr':
         colors = ['r' if x else 'b' for x in results['pareto_opt_weighted2']]
         plt.scatter(results['weighted_avg_tardiness_amount'], results['weighted_rejection_proportion'], c=colors)
 
