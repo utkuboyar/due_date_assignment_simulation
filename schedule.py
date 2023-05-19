@@ -3,6 +3,7 @@ import gurobipy as gp
 import numpy as np
 
 from utils.env_variables import OptimizationParameters
+from utils.helpers import Rounder
 
 #from order import Order
 
@@ -65,7 +66,7 @@ class JobQueue(object):
         model.setParam('MIPGap', OptimizationParameters.get_opt_gap())
         a, b, p, d = [],[],[],[]
         for i, order in enumerate(self._orders_unordered):
-            a.append(order._weight*OptimizationParameters.get_due_date_cost_coef()) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
+            a.append(Rounder.round(order._weight*OptimizationParameters.get_due_date_cost_coef())) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
             b.append(order._weight) #tardiness cost
             p.append(order._expected_process_time)  
             if i != n-1:

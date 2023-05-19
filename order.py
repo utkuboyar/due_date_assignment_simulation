@@ -6,6 +6,8 @@ from customer import Customer
 
 from events import JobStart, JobFinish, OrderCancelation, OrderArrival
 
+from utils.helpers import Rounder
+
 class Order(object):
     def __init__(self, arrival_time, product_type, customer_type, quantity, dispatching_rule, env, order_id):
         self._environment = env
@@ -23,7 +25,7 @@ class Order(object):
         #unit process time is calculated with (expected p.t. * k)
         self._process_time = self._product.get_unit_process_time() * quantity
         
-        self._expected_process_time = self._product.get_expected_unit_process_time() * quantity
+        self._expected_process_time = Rounder.round(self._product.get_expected_unit_process_time() * quantity)
         self._weight = np.round(quantity * self._product.get_unit_profit() * self._customer.get_reliability() * max(1, self._customer.get_weight_coefficient())).astype(int)
         
         self._dispatching_rule = dispatching_rule
