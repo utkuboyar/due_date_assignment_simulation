@@ -21,7 +21,7 @@ if __name__ == '__main__':
     for dispatching_rule in dispatching_rule_grid():
             for due_date_policy_params in due_date_policy_grid():
                 print(dispatching_rule, due_date_policy_params)
-                sim = Simulation(seed=seed, n=n, due_date_policy_params=due_date_policy_params, dispatching_rule=dispatching_rule)
+                sim = Simulation(seed=seed, n=n, due_date_policy_params=due_date_policy_params, dispatching_rule=dispatching_rule, warmup=warmup)
                 stats = sim.run(n_sim = n_sim)
                 sim_info = {'dispatching':dispatching_rule, 'due_date':due_date_policy_params['policy'],
                         'due_date_param':list(due_date_policy_params.values())[1]}

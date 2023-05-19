@@ -23,8 +23,8 @@ class CustomerParameters(object):
     @staticmethod
     def get_params(customer_id):
         reliabilities = {0: 0.97, 1: 0.9}
-        rejection_coefficients = {0: 0.01, 1: 0.02}  # sayılar şimdilik sallamasyon
-        weight_coefficients = {0: [11, 1.2], 1: [20, 3.3]} # sayılar şimdilik sallamasyon
+        rejection_coefficients = {0: 0.001, 1: 0.002}
+        weight_coefficients = {0: [11, 1.2], 1: [20, 3.3]} 
         return reliabilities[customer_id], rejection_coefficients[customer_id], weight_coefficients[customer_id]
     
     @staticmethod

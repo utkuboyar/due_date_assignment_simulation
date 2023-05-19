@@ -33,8 +33,9 @@ class Simulation(object):
 
     def run(self, n_sim, num_cores=-1) -> dict:
         stat_names = {'tardiness_proportion':[], 'rejection_proportion':[],
-                       'weighted_tardiness_proportion':[], 'weighted_rejection_proportion':[]}     
-           
+                       'weighted_tardiness_proportion':[], 'weighted_rejection_proportion':[],
+                       'avg_tardiness_amount':[], 'weighted_avg_tardiness_amount':[]}     
+        
         if num_cores <= 0:
             self._num_cores = multiprocessing.cpu_count()
         else:
@@ -244,13 +245,13 @@ class Environment(object):
             t = order.update_event_times(t)
             
     def get_stats(self, order):
-        return order._id, order._customer._type, order._product._type, order._quantity, order.get_weight(), order._arrival_time, order._due_date, order._start_time, order._cancelation_time, order._finish_time
+        return order._id, order._customer._type, order._product._type, order._quantity, order.get_weight(), order._arrival_time, order._due_date, order._start_time, order._cancelation_time, order._finish_time, order.get_expected_process_time()
     
     def show_stats(self):
         stats_df = pd.DataFrame({'order':self._orders})
 
         stats = stats_df['order'].apply(self.get_stats)
-        stats_df[['ID', 'customer type', 'product type', 'quantity','weight','arrival', 'due date','start','cancelled', 'finish']] = pd.DataFrame(stats.tolist())
+        stats_df[['ID', 'customer type', 'product type', 'quantity','weight','arrival', 'due date','start','cancelled', 'finish', 'expected_process_time']] = pd.DataFrame(stats.tolist())
         stats_df  = stats_df.drop('order', axis=1)
         stats_df['weight'] = stats_df['weight'].astype(int)
         
@@ -307,20 +308,23 @@ class Environment(object):
 
         # Apply the mask to filter the stats
         stats_warmed = stats[mask_warmup]
-        print(stats_warmed)
-        
-        mask_tardy = stats_warmed['tardy amount'].notna()
+        #print(stats_warmed)
+        stats_warmed['tardy amount'] = stats_warmed['tardy amount'].fillna(0)
+
+        mask_tardy = stats_warmed['tardy amount'] > 0
+        # mask_tardy = stats_warmed['tardy amount'].notna()
         mask_rejection = stats_warmed['due date'].isna()
-        
-        
         
         tardiness_prop = mask_tardy.sum()/len(stats_warmed)
         rejection_prop = mask_rejection.sum()/len(stats_warmed)
 
+        avg_tardiness_amount = np.sum(stats_warmed['tardy amount']/stats_warmed['expected_process_time'])/len(stats_warmed)
+        weighted_avg_tardiness_amount = np.sum(stats_warmed['tardy amount']/stats_warmed['expected_process_time'])/stats_warmed[mask_tardy]['weight'].sum()
+
         weighted_tardiness_prop = stats_warmed[mask_tardy]['weight'].sum()/stats_warmed['weight'].sum()
         weighted_rejection_prop = stats_warmed[mask_rejection]['weight'].sum()/stats_warmed['weight'].sum()
 
-        return tardiness_prop, rejection_prop, weighted_tardiness_prop, weighted_rejection_prop
+        return tardiness_prop, rejection_prop, weighted_tardiness_prop, weighted_rejection_prop, avg_tardiness_amount, weighted_avg_tardiness_amount
 
         # self._stats['tardiness_proportion'].append(tardiness_prop)
         # self._stats['rejection_proportion'].append(rejection_prop)
