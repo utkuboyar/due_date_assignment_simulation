@@ -1,10 +1,11 @@
 import pandas as pd
-from time import time
+# from time import time
 import datetime
 import _pickle
 
 from simulation_environment import Simulation
 from utils.model_params import *
+from utils.helpers import pareto_optimum, plot_frontier
 
 
 if __name__ == '__main__':
@@ -31,6 +32,10 @@ if __name__ == '__main__':
                 #print()
 
     df = pd.DataFrame(simulation_info)
+    optimum = df.apply(pareto_optimum, axis=1, df=df)
+    df[['pareto_opt1', 'pareto_opt_weighted1', 'pareto_opt2', 'pareto_opt_weighted2']] = optimum.apply(pd.Series)
+    plot_frontier(df, type='t_v_r')
+
     records['results'] = df
     with open(f'records_{records["start_time"]}', 'wb') as f:
         _pickle.dump(records, f)
