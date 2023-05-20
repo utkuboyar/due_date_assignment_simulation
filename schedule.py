@@ -9,10 +9,11 @@ from utils.helpers import Rounder
 
 class JobQueue(object):
 
-    def __init__(self, policy):
+    def __init__(self, policy, due_date_assigner):
         self._orders_unordered = [] # list of Order instances
         self._sequence = [] # list of Order instances
         self._policy = policy
+        self._due_date_assigner = due_date_assigner
         
     def add_order(self, new_order):
         self._orders_unordered.append(new_order)
@@ -66,11 +67,17 @@ class JobQueue(object):
         model.setParam('MIPGap', OptimizationParameters.get_opt_gap())
         a, b, p, d = [],[],[],[]
         for i, order in enumerate(self._orders_unordered):
-            a.append(Rounder.round(order._weight*OptimizationParameters.get_due_date_cost_coef())) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
+            due_date_cost_coef = OptimizationParameters.get_due_date_cost_coef()
+            a.append(Rounder.round(order._weight*due_date_cost_coef)) #0.8 is given as an initial value will be changed most probabily, a is the due date cost for the new arrived job
             b.append(order._weight) #tardiness cost
             p.append(order._expected_process_time)  
             if i != n-1:
                 d.append(order._due_date)
+            elif self._due_date_assigner.policy != 'SLK':
+                params = {'time_now':time_now, 'expected_process_time':self._orders_unordered[-1]._expected_process_time}
+                offered_due_date = np.round(self._due_date_assigner(**params)).astype(int)
+                d.append(offered_due_date)
+            
         # print() 
         # print('here')
         # print('d:', d)
@@ -88,18 +95,28 @@ class JobQueue(object):
         T = model.addVars(I, lb=0, vtype=gp.GRB.INTEGER, name='T')  # tardiness for each job
         Y = model.addVars(L,lb=0, vtype=gp.GRB.BINARY, name='Y')  # binary variables for job sequencing
         
-        if n > 2:
-            model.setObjective(a[n-1] * C[n-1] + gp.quicksum(b[i] * T[i] for i in range(n-1)), sense=gp.GRB.MINIMIZE)
-        else:
-            model.setObjective(a[n-1] * C[n-1] + b[0] * T[0], sense=gp.GRB.MINIMIZE)
 
+        if self._due_date_assigner.policy == 'SLK':
+            # scheduling problem with due date assignment cost
+            if n > 2:
+                model.setObjective(a[n-1] * C[n-1] + gp.quicksum(b[i] * T[i] for i in range(n-1)), sense=gp.GRB.MINIMIZE)
+            else:
+                model.setObjective(a[n-1] * C[n-1] + b[0] * T[0], sense=gp.GRB.MINIMIZE)
+        else:
+            # simple scheduling problem
+            model.setObjective(gp.quicksum(b[i] * T[i] for i in range(n)), sense=gp.GRB.MINIMIZE)
+            
         for i in I:
             for j in range(i+1, n):
                 #print(i,j)
                 model.addConstr(C[i] <= C[j] - p[j] + M * (1 - Y[i,j]))
                 model.addConstr(C[j] <= C[i] - p[i] + M * (Y[i,j]))
 
-        for i in range(n-1):
+        if self._due_date_assigner.policy == 'SLK':
+            rng = n-1
+        else:
+            rng = n
+        for i in range(rng):
             model.addConstr(T[i] >= C[i] - d[i])
             model.addConstr(T[i] >= 0)
 

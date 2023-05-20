@@ -9,6 +9,7 @@ from due_date_policies import CON, SLK, TWK
 from order import Order
 
 from utils.env_variables import ProductParameters, CustomerParameters, OrderParameters
+# from utils.helpers import Rounder
 
 class Simulation(object):
     def __init__(self, seed, **kwargs):
@@ -79,7 +80,6 @@ class Environment(object):
     def _initialize(self) -> None:
         np.random.seed(self.seed)
         self.event_heap = MinHeap()
-        self._queue = JobQueue(self._dispatching_rule)
         
         if self._due_date_policy == 'CON':
             self._due_date_assigner = CON(**self._due_date_policy_params)
@@ -87,6 +87,8 @@ class Environment(object):
             self._due_date_assigner = SLK(**self._due_date_policy_params)
         if self._due_date_policy == 'TWK':
             self._due_date_assigner = TWK(**self._due_date_policy_params)
+
+        self._queue = JobQueue(self._dispatching_rule, due_date_assigner=self._due_date_assigner)
 
         self._time_now = 0
 
@@ -223,6 +225,7 @@ class Environment(object):
         # params['time_now'] = self._time_now
         params['expected_completion_time'] += t
         params['time_now'] = t
+        # due_date = Rounder.round(self._due_date_assigner(**params))
         due_date = np.round(self._due_date_assigner(**params)).astype(int)
         return self._new_order.due_date_accepted(due_date, self._time_now)
             

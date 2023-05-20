@@ -7,7 +7,9 @@ class Rounder(object):
         decimals = 1
         arr = np.power(10, decimals) * np.round(arr, decimals=decimals)
         return arr.astype(int)
-
+    
+def extend_stats(row, stat):
+    return row['tardiness_proportion'][stat], row['rejection_proportion'][stat], row['weighted_tardiness_proportion'][stat], row['weighted_rejection_proportion'][stat], row['avg_tardiness_amount'][stat], row['weighted_avg_tardiness_amount'][stat]
 
 def pareto_optimum(row, df):
     mask1 = df['tardiness_proportion'] < row['tardiness_proportion']
