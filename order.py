@@ -23,7 +23,7 @@ class Order(object):
         self._finish_time = None
         
         #unit process time is calculated with (expected p.t. * k)
-        self._process_time = self._product.get_unit_process_time() * quantity
+        self._process_time = max(1, self._product.get_unit_process_time() * quantity)
         
         self._expected_process_time = Rounder.round(self._product.get_expected_unit_process_time() * quantity)
         self._weight = np.round(quantity * self._product.get_unit_profit() * self._customer.get_reliability() * max(1, self._customer.get_weight_coefficient())).astype(int)
